@@ -4,6 +4,7 @@ alembic.ini
 .env
 Scripts
 pyvenv.cfg
+include/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
