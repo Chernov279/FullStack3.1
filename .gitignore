@@ -1,4 +1,5 @@
 # created by virtualenv automatically
+node_modules/
 .idea
 alembic.ini
 .env
