@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, JSON, Boolean, PrimaryKeyConstraint, func
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -30,7 +30,9 @@ class IngredientDish(Base):
         Integer, ForeignKey("dishes.id", ondelete="CASCADE"), nullable=False
     )
     amount = Column(Numeric(10, 2), nullable=True)
-
+    __table_args__ = (
+        PrimaryKeyConstraint('id_ingredient', 'id_dish', name='ingredient_dish_pk'),
+    )
 
 class Allergen(Base):
     __tablename__ = "allergens"
@@ -69,3 +71,22 @@ class WriteOff(Base):
     ingredient = Column(String, nullable=False)
     quantity = Column(Numeric(10, 2), nullable=False)
     reason = Column(String)
+
+
+class Label(Base):
+    __tablename__ = "labels"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    order_id = Column(Integer, nullable=True)
+    customer_name = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    delivery_time = Column(DateTime, nullable=True)
+    comment = Column(String, nullable=True)
+
+    total_sum = Column(Numeric(10, 2), nullable=False)
+
+    items = Column(JSON, nullable=False)  # [{dish_id, dish_name, qty}, ...]
+
+    printed = Column(Boolean, default=False)

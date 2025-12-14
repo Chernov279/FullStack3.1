@@ -3,15 +3,17 @@ from fastapi import FastAPI
 
 from starlette.middleware.cors import CORSMiddleware
 
+from backend.src import api_router
+
 
 def get_application() -> FastAPI:
     application = FastAPI(
         title="Chef Assistant API",
     )
 
-    # application.include_router(
-    #     router=...
-    # )
+    application.include_router(
+        router=api_router
+    )
 
     application.add_middleware(
         CORSMiddleware,
