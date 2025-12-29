@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import Response
 
 from backend.src.auth.repository import UserRepository
-from backend.src.auth.schemas import UserRead, UserCreate, Token, RefreshTokenSchema
+from backend.src.auth.schemas import UserRead, UserCreate, Token, RefreshTokenSchema, TokenSchema
 from backend.src.auth.utils.jwt import create_refresh_token
 from backend.src.auth.utils.security import hash_password, verify_password, create_access_token
 from backend.src.core.config import settings
@@ -68,3 +69,16 @@ async def refresh_token(data: RefreshTokenSchema):
         "access_token": create_access_token(email),
         "token_type": "bearer",
     }
+
+
+@auth_router.post("/verify")
+async def refresh_token(data: TokenSchema):
+    try:
+        jwt.decode(
+            data.token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

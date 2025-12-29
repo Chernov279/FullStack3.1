@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -6,10 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Loader2 } from 'lucide-react';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
-
-interface LoginScreenProps {
-  onLogin: (accessToken: string) => void;
-}
 
 interface LoginResponse {
   refresh_token: string;
@@ -20,11 +17,12 @@ interface TokenResponse {
   token_type: string;
 }
 
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+export function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate(); // Хук для навигации
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +80,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
       
-      // Передаем access token в родительский компонент
-      onLogin(accessToken);
+      // Перенаправляем на главную страницу приложения
+      navigate('/app', { replace: true });
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');

@@ -1,120 +1,164 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BookOpen, ChefHat, Calculator, DollarSign, FileText, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
-import { ChefHat, UtensilsCrossed, Package, FileText, LogOut, Menu, X } from 'lucide-react';
 import { DishManagement } from './DishManagement';
 import { IngredientManagement } from './IngredientManagement';
-import { OrderLabels } from './OrderLabels';
 import { WriteOffs } from './WriteOffs';
+import { OrderLabels } from './OrderLabels';
 
-type Screen = 'dishes' | 'ingredients' | 'orders' | 'writeoffs';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
-interface MainLayoutProps {
-  onLogout: () => void;
-}
+// Массив доступных вкладок
+const TAB_OPTIONS = [
+  { key: 'recipes', label: 'Менеджер рецептов', icon: ChefHat },
+  { key: 'costing', label: 'Калькуляция продуктов', icon: Calculator },
+  { key: 'accounting', label: 'Бухгалтерия', icon: DollarSign },
+  { key: 'writing', label: 'Списания', icon: FileText },
+];
 
-export function MainLayout({ onLogout }: MainLayoutProps) {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('dishes');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+export function MainLayout() {
+  const navigate = useNavigate();
+  
+  // Загружаем сохраненную вкладку из localStorage при инициализации
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedTab = localStorage.getItem('activeTab');
+    // Проверяем, что сохраненная вкладка существует в массиве TAB_OPTIONS
+    return savedTab && TAB_OPTIONS.some(tab => tab.key === savedTab) 
+      ? savedTab 
+      : 'recipes'; // вкладка по умолчанию
+  });
+  
+  const [accessToken, setAccessToken] = useState(localStorage.getItem('access_token') || '');
 
-  const menuItems = [
-    { id: 'dishes' as Screen, label: 'Блюда', icon: UtensilsCrossed },
-    { id: 'ingredients' as Screen, label: 'Ингредиенты', icon: Package },
-    { id: 'orders' as Screen, label: 'Чеки', icon: FileText },
-    { id: 'writeoffs' as Screen, label: 'Списания', icon: FileText }
-  ];
+  // Сохраняем активную вкладку в localStorage при ее изменении
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'dishes':
-        return <DishManagement />;
-      case 'ingredients':
-        return <IngredientManagement />;
-      case 'orders':
-        return <OrderLabels />;
-      case 'writeoffs':
-        return <WriteOffs />;
-      default:
-        return <DishManagement />;
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem('access_token');
+      const refreshToken = localStorage.getItem('refresh_token');
+      
+      if (!token || !refreshToken) {
+        handleLogout();
+        return;
+      }
+
+      const isValid = await validateToken(token);
+      if (!isValid) {
+        const newToken = await refreshAccessToken(refreshToken);
+        if (newToken) {
+          localStorage.setItem('access_token', newToken);
+          setAccessToken(newToken);
+        } else {
+          handleLogout();
+        }
+      }
+    };
+
+    checkToken();
+    
+    const interval = setInterval(checkToken, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const validateToken = async (token: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ token: token })
+      });
+      
+      return response.ok;
+    } catch {
+      return false;
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden"
-            >
-              {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-            <div className="flex items-center gap-3">
-              <ChefHat className="h-8 w-8 text-slate-700" />
-              <h1 className="text-slate-900">Ассистент Шефа</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm text-slate-900">Администратор</p>
-              <p className="text-xs text-slate-500">admin@restaurant.ru</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={onLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Выход
-            </Button>
-          </div>
-        </div>
-      </header>
+  const refreshAccessToken = async (refreshToken: string): Promise<string | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
 
+      if (response.ok) {
+        const data = await response.json();
+        return data.access_token;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleTabChange = (tabKey: string) => {
+    setActiveTab(tabKey);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('activeTab'); // Очищаем сохраненную вкладку при выходе
+    navigate('/auth', { replace: true });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
       <div className="flex">
         {/* Sidebar */}
-        <aside
-          className={`${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          } fixed lg:static lg:translate-x-0 inset-y-0 left-0 z-20 w-64 bg-white border-r border-slate-200 transition-transform duration-200 ease-in-out mt-[73px] lg:mt-0`}
-        >
+        <div className="w-64 bg-card border-r border-border min-h-screen">
+          <div className="p-6 border-b border-border">
+            <div className="flex items-center gap-2">
+              <ChefHat className="h-8 w-8 text-primary" />
+              <h1 className="text-xl font-semibold">Помощник Шефа</h1>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Профессиональное управление кухней
+            </p>
+          </div>
+          
           <nav className="p-4 space-y-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Button
-                  key={item.id}
-                  variant={currentScreen === item.id ? 'default' : 'ghost'}
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setCurrentScreen(item.id);
-                    if (window.innerWidth < 1024) {
-                      setIsSidebarOpen(false);
-                    }
-                  }}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.label}
-                </Button>
-              );
-            })}
+            {/* Генерация кнопок навигации из массива TAB_OPTIONS */}
+            {TAB_OPTIONS.map((tab) => (
+              <Button
+                key={tab.key}
+                variant={activeTab === tab.key ? 'default' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => handleTabChange(tab.key)}
+              >
+                <tab.icon className="mr-2 h-4 w-4" />
+                {tab.label}
+              </Button>
+            ))}
+            
+            {/* Кнопка выхода */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-500 hover:text-red-700 mt-8"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Выйти
+            </Button>
           </nav>
-        </aside>
+        </div>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {renderScreen()}
-          </div>
-        </main>
+        <div className="flex-1 p-6">
+          {/* Отображение компонента в зависимости от активной вкладки */}
+          {activeTab === 'recipes' && <DishManagement accessToken={accessToken} />}
+          {activeTab === 'costing' && <IngredientManagement accessToken={accessToken} />}
+          {activeTab === 'accounting' && <WriteOffs accessToken={accessToken} />}
+          {activeTab === 'writing' && <OrderLabels accessToken={accessToken} />}
+        </div>
       </div>
-
-      {/* Overlay for mobile */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-10 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 }
