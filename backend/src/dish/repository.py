@@ -14,6 +14,11 @@ class DishRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_all(self):
+        stmt = select(Dish).order_by(Dish.name)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def get_dish_cost(self, dish_id: int):
         """
         Возвращает себестоимость блюда.
@@ -33,10 +38,14 @@ class DishRepository:
         rows = result.all()
         return rows
     async def create(self, data: DishCreate):
+        stmt = select(Dish).where(Dish.name == data.name)
+        result = await self.session.execute(stmt)
+        existing_dish = result.scalar_one_or_none()
 
+        if existing_dish:
+            raise ValueError(f"Блюдо с названием '{data.name}' уже существует")
         stmt = insert(Dish).values(
             name=data.name,
-            description=data.description
         ).returning(Dish)
 
         result = await self.session.execute(stmt)

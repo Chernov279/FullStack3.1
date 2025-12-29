@@ -6,7 +6,7 @@ from starlette.responses import Response
 
 from backend.src.core.db import get_async_session
 from backend.src.ingredient.repository import IngredientRepository
-from backend.src.ingredient.schemas import IngredientOut, IngredientCreate
+from backend.src.ingredient.schemas import IngredientOut, IngredientCreate, IngredientUpdate
 
 ingredient_router = APIRouter(prefix="/ingredients", tags=["Ingredients"])
 
@@ -16,6 +16,24 @@ async def create_ingredient(data: IngredientCreate, session: AsyncSession = Depe
     repo = IngredientRepository(session)
     return await repo.create(data)
 
+
+@ingredient_router.put("/{ingredient_id}", response_model=IngredientOut)
+async def update_ingredient(
+        ingredient_id: int,
+        data: IngredientUpdate,
+        session: AsyncSession = Depends(get_async_session)
+):
+    repo = IngredientRepository(session)
+
+    existing_ingredient = await repo.get_by_id(ingredient_id)
+    if not existing_ingredient:
+        raise HTTPException(status_code=404, detail="Ингредиент не найден")
+
+    updated_ingredient = await repo.update(ingredient_id, data)
+    if not updated_ingredient:
+        raise HTTPException(status_code=500, detail="Ошибка при обновлении ингредиента")
+
+    return updated_ingredient
 
 @ingredient_router.delete("/{ingredient_id}")
 async def delete_ingredient(ingredient_id: int, session: AsyncSession = Depends(get_async_session)):

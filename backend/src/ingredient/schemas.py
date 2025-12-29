@@ -9,3 +9,7 @@ class IngredientOut(BaseModel):
     id: int
     name: str
     quantity: float
+
+class IngredientUpdate(BaseModel):
+    name: str
+    quantity: float

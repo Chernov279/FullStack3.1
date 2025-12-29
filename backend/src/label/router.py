@@ -16,9 +16,6 @@ async def create_label(payload: LabelCreate, session: AsyncSession = Depends(get
     repo = LabelRepository(session)
     return await repo.create(payload)
 
-
-
-
 @labels_router.get("/{label_id}", response_model=LabelOut)
 async def get_label(label_id: int, session: AsyncSession = Depends(get_async_session)):
     repo = LabelRepository(session)

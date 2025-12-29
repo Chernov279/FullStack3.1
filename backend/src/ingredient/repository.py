@@ -1,9 +1,9 @@
 from typing import List
 
-from sqlalchemy import insert, delete, select
+from sqlalchemy import insert, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.src.ingredient.schemas import IngredientCreate
+from backend.src.ingredient.schemas import IngredientCreate, IngredientUpdate
 from backend.src.models import Ingredient
 
 
@@ -19,11 +19,21 @@ class IngredientRepository:
     async def create(self, data: IngredientCreate):
         stmt = insert(Ingredient).values(
             name=data.name,
-            unit_cost=data.unit_cost
+            quantity=data.quantity
         ).returning(Ingredient)
         result = await self.session.execute(stmt)
         await self.session.commit()
         return result.scalar_one()
+
+    async def update(self, ingredient_id: int, data: IngredientUpdate):
+        stmt = update(Ingredient).where(Ingredient.id == ingredient_id).values(
+            name=data.name,
+            quantity=data.quantity
+        ).returning(Ingredient)
+
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.scalar_one_or_none()
 
     async def delete(self, ingredient_id: int):
         ingredient = await self.get_by_id(ingredient_id)

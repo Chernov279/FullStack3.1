@@ -1,17 +1,22 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
 
 from .repository import DishRepository
-from .schemas import DishOut, DishCreate
+from .schemas import DishOut, DishCreate, DishListOut
 from ..schemas.dish import DishIn, DishCostOut
 from ..core.db import get_async_session
 
 dish_router = APIRouter(prefix="/dish", tags=["Dish"])
 
+@dish_router.get("/all", response_model=List[DishListOut])
+async def get_all_dishes(session: AsyncSession = Depends(get_async_session)):
+    repo = DishRepository(session)
+    return await repo.get_all()
 
-
-@dish_router.get("/calculate", response_model=DishCostOut)
+@dish_router.get("/{dish_id}", response_model=DishCostOut)
 async def calculate_cost(
         dish_id: int,
         session: AsyncSession = Depends(get_async_session)
@@ -31,7 +36,13 @@ async def calculate_cost(
 @dish_router.post("/", response_model=DishOut)
 async def create_dish(data: DishCreate, session: AsyncSession = Depends(get_async_session)):
     repo = DishRepository(session)
-    return await repo.create(data)
+    try:
+        dish = await repo.create(data)
+        return DishListOut(id=dish.id, name=dish.name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Ошибка при создании блюда")
 
 
 @dish_router.delete("/{dish_id}")
