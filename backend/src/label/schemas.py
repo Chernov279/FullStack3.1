@@ -5,8 +5,7 @@ from pydantic import BaseModel
 class LabelItem(BaseModel):
     dish_id: int
     dish_name: str
-    quantity: int
-    unit_price: float
+    qty: int
 
 class LabelCreate(BaseModel):
     order_id: Optional[int] = None

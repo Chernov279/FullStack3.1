@@ -22,7 +22,7 @@ class DishRepository:
         stmt = (
             select(
                 IngredientDish.amount,
-                Ingredient.unit_cost
+                Ingredient.quantity
             )
             .select_from(IngredientDish)
             .join(Ingredient, Ingredient.id == IngredientDish.id_ingredient)

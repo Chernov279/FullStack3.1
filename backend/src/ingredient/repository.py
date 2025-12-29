@@ -1,7 +1,6 @@
 from typing import List
 
-from select import select
-from sqlalchemy import insert, delete
+from sqlalchemy import insert, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.src.ingredient.schemas import IngredientCreate

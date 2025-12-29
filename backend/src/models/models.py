@@ -1,7 +1,14 @@
 from sqlalchemy import Column, Integer, String, Numeric, ForeignKey, DateTime, JSON, Boolean, PrimaryKeyConstraint, func
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 
 Base = declarative_base()
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    hashed_password: Mapped[str]
 
 
 class Dish(Base):

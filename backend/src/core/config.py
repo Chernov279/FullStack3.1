@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     DB_NAME: str = "assistant_chef"
     DB_PASSWORD: str | None = "postgres"
 
+    SECRET_KEY: str = "SECRET"
+    ALGORITHM: str = "HS256"
+
     @property
     def DATABASE_URL(self) -> str:
         if self.DB_PASSWORD is None:

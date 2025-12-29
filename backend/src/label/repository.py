@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import insert, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.src.label.schemas import LabelCreate
+from backend.src.label.schemas import LabelCreate, LabelOut, LabelItem
 from backend.src.models import Label
 
 
@@ -14,7 +14,7 @@ class LabelRepository:
 
 
     async def create(self, data: LabelCreate) -> Label:
-        total_sum = sum(i.unit_price * i.quantity for i in data.items)
+        total_sum = sum(i.unit_price * i.qty for i in data.items)
 
 
         stmt = insert(Label).values(
@@ -33,13 +33,31 @@ class LabelRepository:
         return result.scalar_one()
 
 
-    async def get(self, label_id: int) -> Label:
+    async def get(self, label_id: int) -> LabelOut:
         stmt = select(Label).where(Label.id == label_id)
         result = await self.session.execute(stmt)
         label = result.scalar_one_or_none()
         if not label:
             raise HTTPException(status_code=404, detail="Label not found")
-        return label
+        return LabelOut(
+            id=label.id,
+            order_id=label.order_id,
+            customer_name=label.customer_name,
+            address=label.address,
+            created_at=label.created_at,
+            delivery_time=label.delivery_time,
+            comment=label.comment,
+            total_sum=float(label.total_sum),
+            printed=label.printed,
+            items=[
+                LabelItem(
+                    dish_id=item["dish_id"],
+                    dish_name=item["dish_name"],
+                    qty=item["qty"],
+                )
+                for item in label.items
+            ],
+        )
 
 
     async def delete(self, label_id: int):
